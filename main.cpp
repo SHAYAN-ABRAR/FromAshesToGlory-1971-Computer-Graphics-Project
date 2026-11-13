@@ -1,9 +1,26 @@
 #include <iostream>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include<GL/gl.h>
 #include <GL/glut.h>
 #include<math.h>
+#include <cstdlib>
+#include <vector>
+#include <algorithm>
 using namespace std;
+
+// Effect hooks (implemented in the "Living scenes" section before display()).
+enum FxAnchorId { A_JET2_TAIL, A_BOMB2, A_GUN3_0, A_GUN3_1, A_JET3_TAIL, A_MISSILE1,
+                  A_TOWER5_0, A_TOWER5_1, A_TOWER5_2, A_CAR5_1, A_CAR5_2, A_PLANE5_TAIL, A_COUNT };
+struct FxPoint { float x, y; bool ok; };
+void fxAnchor(int id, float lx, float ly);
+void fxAnchorGun(float lx, float ly);
+void fxAnchorTower(float lx, float ly);
+float fxBob(float speed, float phase);
+float fxGunRecoil(int idx);
+void fxBanner(float x0, float x1, float yBottom, float yTop, float cx, float cy, float rad);
+extern int fxGunCounter;
 bool show_display1=false;
 bool show_display2=false;
 bool show_display3=false;
@@ -99,7 +116,7 @@ void rain_s(int value)  //1
         glEnd();
 
         glutPostRedisplay();
-        glutTimerFunc(5, rain_s, 0);
+        glutTimerFunc(15, rain_s, 0);
         glFlush();
     }
 }
@@ -3552,6 +3569,7 @@ void misael2_s()
     glPushMatrix();
     glTranslatef(4,0,0);
     glTranslatef(_move1, 0.0f, 0.0f);
+    fxAnchor(A_MISSILE1, 19.3f, -2.0f);
 
     //wheel_up_left
 	glBegin(GL_POLYGON);
@@ -4585,8 +4603,8 @@ void display1()
 {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(-84,27,0);
-    glScalef(5.4,2.51,0);
+    glTranslatef(-85.5632,27.7778,0);
+    glScalef(5.5632,2.7778,0);
 	broader_s();
     train_platform1_s();
     rail_line1_s();
@@ -4657,7 +4675,7 @@ void update3_s(int value)
 
     }
     glutPostRedisplay();
-    glutTimerFunc(10, update3_s, 0);
+    glutTimerFunc(15, update3_s, 0);
 }
 
 
@@ -5279,7 +5297,6 @@ void paddy_field_t()                //paddy fiels
     glVertex2f(-80,10);
     glVertex2f(-60,10);
     glEnd();
-    glPopMatrix();
 
 
 }
@@ -5852,6 +5869,7 @@ void fighter_jet_t()            //fighter jet
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(_move_jet_x_t,_move_jet_y_t, 0.0f);
+    fxAnchor(A_JET2_TAIL, 14.7f, 22.3f);
     glBegin(GL_POLYGON);
 
     glVertex2f(13.45,22.1);
@@ -6531,6 +6549,7 @@ void bomb_t()                   //bomb
     glColor3ub(102, 51, 0);
     glTranslatef(5,6,0);
     glTranslatef(0,_move_bomb_t,0);
+    fxAnchor(A_BOMB2, -42.1f, 9.0f);
         glBegin(GL_POLYGON);
         glVertex2f(-41.98,8.13);
         glVertex2f(-41.86,8.47);
@@ -6649,7 +6668,7 @@ void boatMove_t()           //boat move     //update5
 {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(_move_boat_t,0,0);
+    glTranslatef(_move_boat_t,0.12f*fxBob(1.8f,0.0f),0);
     boat_t(0,0,1);
     glPopMatrix();
 
@@ -6658,7 +6677,7 @@ void boatMove2_t()
 {
      glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(_move_boat_2_t,0,0);
+    glTranslatef(_move_boat_2_t,0.1f*fxBob(1.5f,1.3f),0);
     boat_t(-9,8,0.7);
     glPopMatrix();
 }
@@ -6893,7 +6912,7 @@ void update6_t(int value)     //jet move x axis
         }
     }
         glutPostRedisplay();
-        glutTimerFunc(1, update6_t, 0);
+        glutTimerFunc(15, update6_t, 0);
 
 
 }
@@ -6908,7 +6927,7 @@ void update7_t(int value)     //jet move y axis
         }
     }
         glutPostRedisplay();
-        glutTimerFunc(1, update7_t, 0);
+        glutTimerFunc(15, update7_t, 0);
 
 
 }
@@ -6924,7 +6943,7 @@ void update8_t(int value)     //bomb move
         }
     }
     glutPostRedisplay();
-    glutTimerFunc(2, update8_t, 0);
+    glutTimerFunc(15, update8_t, 0);
 }
 
 void update9_t(int value)     //bomb move
@@ -7014,6 +7033,7 @@ void update1_t(int value)       //train wheel move
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(_move_a, 0.0f, 0.0f);
+    fxAnchor(A_JET3_TAIL, -10.62f, -0.43f);
 
 
 
@@ -7816,6 +7836,8 @@ void update1_t(int value)       //train wheel move
         glTranslatef(x,y,0);
         glScalef(z,z,0);
         glTranslatef(_move_boat_a,0,0);
+        glTranslatef(fxGunRecoil(fxGunCounter),0.012f*fxBob(1.6f,fxGunCounter*1.7f),0);
+        fxAnchorGun(-14.74f,-3.05f);
         //gunboathull
     glColor3ub(47, 79, 79); // Dark slate gray
     glBegin(GL_POLYGON);
@@ -8301,44 +8323,8 @@ void update1_t(int value)       //train wheel move
     glEnd();
 
 
-    //flag
-
-        //green-part
-    glBegin(GL_POLYGON);
-
-    glColor3ub(0, 106, 78);
-    glVertex2f(-10.745,-1.563);
-    glVertex2f(-10.691,-1.581);
-    glVertex2f(-10.611,-1.589);
-    glVertex2f(-10.55,-1.59);
-    glVertex2f(-10.47,-1.579);
-    glVertex2f(-10.414,-1.56);
-    glVertex2f(-10.4,-2.25);
-    glVertex2f(-10.43,-2.262);
-    glVertex2f(-10.511,-2.271);
-    glVertex2f(-10.601,-2.27);
-    glVertex2f(-10.681,-2.263);
-    glVertex2f(-10.756,-2.252);
-    glVertex2f(-10.745,-1.563);
-
-    glEnd();
-
-//flag
-    //red-part
-
-        glBegin(GL_POLYGON);// Draw a Red 1x1 Square centered at origin
-	for(int i=0;i<200;i++)
-        {
-            glColor3ub(206, 17, 38);
-            float pi=3.1416;
-            float A=(i*2*pi)/200;
-            float r=0.091;
-            float x = r * cos(A);
-            float y = r * sin(A);
-            glVertex2f(x-10.58,y-1.9);
-        }
-
-glEnd();
+    //flag (now ripples in the wind)
+    fxBanner(-10.756f, -10.4f, -2.27f, -1.56f, -10.58f, -1.9f, 0.091f);
  glPopMatrix();
     }
 
@@ -8985,8 +8971,8 @@ void display3()
 {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(165,25,0);
-    glScalef(14,5.8,0);
+    glTranslatef(157.825,25,0);
+    glScalef(13.2125,6.25,0);
 
 	mainBackGround_a();
     jet_a();
@@ -9672,6 +9658,7 @@ void field_N() {
     glVertex2f(52.3,91.27);
     glVertex2f(48,81.08);
     glVertex2f(31.07, 81.12);
+    glEnd();
 
     glBegin(GL_POLYGON);//right field
     glColor3ub(0, 153, 51);
@@ -9803,7 +9790,7 @@ else{
 void Boat_N(){
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(move_Boat_N,0,0);
+    glTranslatef(move_Boat_N,0.12f*fxBob(1.5f,0.4f),0);
 
     glBegin(GL_POLYGON);//boat
     glColor3ub(0, 0, 0);
@@ -10952,8 +10939,8 @@ else{
 void display4() {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(-133,-72.7,0);
-    glScalef(1.7,0.9,0);
+    glTranslatef(-128.834,-73.42,0);
+    glScalef(1.57175,0.90645,0);
     sky_N();
     nightsky_n();
     sun_N();
@@ -11099,7 +11086,7 @@ void sky()
     //glVertex2f(0,-36);
     glVertex2f(60,0);
     glEnd();
-
+    glPopMatrix();
   }
 void sun()
 {
@@ -11152,6 +11139,7 @@ void plane()
     glPushMatrix();
     glTranslatef(0,-0.5,0);
     glTranslatef(plane_move,0,0);
+    fxAnchor(A_PLANE5_TAIL, 2.1f, -1.2f);
     if(nightstatus_d)
         glColor3ub(102, 75, 0);
     else
@@ -11173,6 +11161,7 @@ void plane()
     glVertex2f(4.79,-1.37);
     glVertex2f(4,-1.38);
     glVertex2f(2.67,-1.37);
+    glEnd();
 
 
     //plane hand 1st
@@ -11461,6 +11450,7 @@ void powerplant_border()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(x,y,0);
+    fxAnchorTower(4.5f,-5.25f);
       //1st left
       if(!nightstatus_d)
         glColor3ub(217, 217, 217);
@@ -11725,6 +11715,7 @@ void car_1(float y)
     glPushMatrix();
     glTranslatef(0,y,0);
     glTranslatef(car_move,0,0);
+    fxAnchor(A_CAR5_1, 12.0f, -14.9f);
     glColor3ub(185, 119, 14);
     glBegin(GL_POLYGON);
     glVertex2f(7.5, -14.6);
@@ -11848,6 +11839,7 @@ void car_2()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glTranslatef(car_move1_d,0,0);
+    fxAnchor(A_CAR5_2, 43.6f, -14.9f);
     glColor3ub(185, 119, 14);
     glBegin(GL_POLYGON);
     glVertex2f(43.6, -14.6);
@@ -11958,7 +11950,7 @@ void boat(float x,float y,float s)
     glPushMatrix();
     glTranslatef(x,y,0);
     glScalef(s,s,0);
-    glTranslatef(boat_move,0,0);
+    glTranslatef(boat_move,0.15f*fxBob(1.6f,x),0);
     glColor3ub(179, 89, 0);
     glBegin(GL_POLYGON);
     glVertex2f(28.98,-24.73);
@@ -12377,8 +12369,8 @@ void display5()
 {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(-2,1.4,0);
-    glScalef(1,1,0);
+    glTranslatef(-80,25,0);
+    glScalef(2.114,0.69444,0);
 	sky();
 	sun();
 	moon();
@@ -12496,10 +12488,1023 @@ void update6(int value)     //car move
 
 
 
+//==============================================================================
+//  Living scenes: particles, fire and smoke, explosions, weather, waving flags,
+//  scene captions, a title screen and a story mode that plays every scene.
+//  Everything here is drawn on top of the original scenes in the shared world
+//  coordinates (x: -80..25.7, y: 0..25) set up by gluOrtho2D in main().
+//==============================================================================
+const float FX_X0 = -80.0f, FX_X1 = 25.7f, FX_Y1 = 25.0f;
+
+struct FxParticle {
+    float x, y;          // world position
+    float vx, vy;        // velocity, world-x units per second (y is aspect-corrected)
+    float life, maxLife; // seconds
+    float size, grow;    // radius in world-x units, growth per second
+    float r, g, b, a;
+    float drag, gravity;
+    int type;            // 0 soft blob, 1 additive glow, 2 spark streak, 3 debris chunk, 4 ring
+    float rot, vrot;
+};
+
+struct FxShell {         // a gun shell or tracer flying along an arc
+    float x0, y0, x1, y1, arc, t, dur;
+    int kind;            // 0 gunboat shell (explodes on land), 1 tracer (splashes in water), 2 firework rocket
+    float r, g, b;
+};
+
+struct FxBird { float x, y, speed, phase, size; };
+
+vector<FxParticle> fxParts;
+vector<FxShell> fxShells;
+vector<FxBird> fxBirds;
+
+float fxTime = 0, fxDt = 0.016f, fxSceneTime = 0;
+int fxLastMs = -1, fxScene = 0, fxPrevScene = -1;
+float fxAspect = 0.42f;                  // world-y units per world-x unit on screen
+float fxShake = 0, fxShakeX = 0, fxShakeY = 0, fxFlash = 0, fxFade = 0;
+float fxNextFire = 0, fxNextReturn = 0, fxNextTank = 0, fxNextBirds = 0, fxNextBolt = 0, fxNextRocket = 0;
+float fxBolt = 0, fxBoltX = 0;
+int fxGunTurn = 0;
+int fxSeenExplosion = 0;
+bool fxJetAuto = false;
+bool fxStory = false;
+float fxStoryTime = 0;
+const float FX_STORY_SCENE = 16.0f;
+
+FxPoint fxAnchors[A_COUNT];
+int fxGunCounter = 0, fxTowerCounter = 0;
+float fxRecoil[2] = {0, 0};
+
+float frand(float a, float b) { return a + (b - a) * (rand() / (float)RAND_MAX); }
+
+void fxAnchor(int id, float lx, float ly)
+{
+    // Convert a point in the current drawing space to world coordinates.
+    // The base modelview matrix holds the gluOrtho2D set in main(), so the
+    // current matrix maps local points straight to normalised device coordinates.
+    GLfloat m[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, m);
+    float cx = m[0] * lx + m[4] * ly + m[12];
+    float cy = m[1] * lx + m[5] * ly + m[13];
+    fxAnchors[id].x = FX_X0 + (cx + 1.0f) * 0.5f * (FX_X1 - FX_X0) - fxShakeX;
+    fxAnchors[id].y = (cy + 1.0f) * 0.5f * FX_Y1 - fxShakeY;
+    fxAnchors[id].ok = true;
+}
+
+void fxAnchorGun(float lx, float ly)
+{
+    if (fxGunCounter < 2) fxAnchor(A_GUN3_0 + fxGunCounter, lx, ly);
+    fxGunCounter++;
+}
+
+void fxAnchorTower(float lx, float ly)
+{
+    if (fxTowerCounter < 3) fxAnchor(A_TOWER5_0 + fxTowerCounter, lx, ly);
+    fxTowerCounter++;
+}
+
+float fxBob(float speed, float phase) { return sinf(fxTime * speed + phase); }
+
+float fxGunRecoil(int idx) { return (idx >= 0 && idx < 2) ? fxRecoil[idx] : 0.0f; }
+
+// ------------------------------------------------------------------ particles
+FxParticle &fxEmit(int type, float x, float y, float vx, float vy, float life, float size,
+                   float r, float g, float b, float a)
+{
+    FxParticle p;
+    p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+    p.life = p.maxLife = life; p.size = size; p.grow = 0;
+    p.r = r; p.g = g; p.b = b; p.a = a;
+    p.drag = 0; p.gravity = 0; p.type = type; p.rot = frand(0, 360); p.vrot = 0;
+    fxParts.push_back(p);
+    return fxParts.back();
+}
+
+void fxSmoke(float x, float y, float size, float shade, float alpha, float windX, float riseY, float life)
+{
+    FxParticle &p = fxEmit(0, x + frand(-0.3f, 0.3f), y + frand(-0.1f, 0.1f),
+                           windX + frand(-0.3f, 0.3f), riseY + frand(-0.2f, 0.3f), life * frand(0.8f, 1.2f),
+                           size * frand(0.7f, 1.1f), shade, shade, shade * 1.02f, alpha);
+    p.grow = size * 0.9f;
+    p.drag = 0.2f;
+}
+
+void fxFire(float x, float y, float size)
+{
+    FxParticle &p = fxEmit(1, x + frand(-0.4f, 0.4f) * size, y, frand(-0.3f, 0.3f), frand(1.2f, 2.6f),
+                           frand(0.25f, 0.55f), size * frand(0.5f, 0.9f), 1.0f, frand(0.45f, 0.75f), 0.1f, 0.85f);
+    p.grow = -size * 0.8f;
+}
+
+void fxSparks(float x, float y, int n, float speed, float r, float g, float b, float gravity)
+{
+    for (int i = 0; i < n; i++) {
+        float a = frand(0, 6.2832f), s = speed * frand(0.3f, 1.0f);
+        FxParticle &p = fxEmit(2, x, y, cosf(a) * s, sinf(a) * s, frand(0.4f, 1.1f), 0.08f, r, g, b, 1.0f);
+        p.gravity = gravity;
+        p.drag = 0.8f;
+    }
+}
+
+void fxSplash(float x, float y, float strength)
+{
+    for (int i = 0; i < (int)(18 * strength); i++) {
+        FxParticle &p = fxEmit(0, x + frand(-0.4f, 0.4f), y, frand(-1.6f, 1.6f) * strength,
+                               frand(3.0f, 7.0f) * strength, frand(0.5f, 0.9f), frand(0.12f, 0.28f),
+                               0.85f, 0.93f, 1.0f, 0.9f);
+        p.gravity = -16.0f;
+    }
+    FxParticle &ring = fxEmit(4, x, y, 0, 0, 0.7f, 0.2f, 0.9f, 0.97f, 1.0f, 0.8f);
+    ring.grow = 3.0f * strength;
+}
+
+void fxExplosion(float x, float y, float power, bool onWater)
+{
+    fxShake = max(fxShake, 0.35f * power);
+    fxFlash = max(fxFlash, 0.25f * power);
+    FxParticle &ring = fxEmit(4, x, y, 0, 0, 0.45f, 0.4f, 1.0f, 0.95f, 0.8f, 0.9f);
+    ring.grow = 14.0f * power;
+    for (int i = 0; i < (int)(26 * power); i++) {          // fireball
+        float a = frand(0, 6.2832f), s = frand(1.0f, 5.0f) * power;
+        FxParticle &p = fxEmit(1, x, y, cosf(a) * s, fabsf(sinf(a)) * s + 1.0f, frand(0.35f, 0.8f),
+                               frand(0.6f, 1.4f) * power, 1.0f, frand(0.35f, 0.8f), 0.05f, 0.9f);
+        p.grow = 1.5f * power;
+        p.drag = 2.5f;
+    }
+    for (int i = 0; i < (int)(14 * power); i++) {          // smoke
+        FxParticle &p = fxEmit(0, x + frand(-1, 1) * power, y + frand(0, 0.6f), frand(-1.2f, 1.6f),
+                               frand(1.0f, 3.0f), frand(2.5f, 4.5f), frand(0.8f, 1.6f) * power,
+                               0.22f, 0.21f, 0.2f, 0.55f);
+        p.grow = 1.6f * power;
+        p.drag = 0.6f;
+    }
+    for (int i = 0; i < (int)(18 * power); i++) {          // debris or dirt
+        float a = frand(0.2f, 2.94f), s = frand(4.0f, 11.0f) * power;
+        float shade = onWater ? 0.85f : frand(0.25f, 0.4f);
+        FxParticle &p = fxEmit(onWater ? 0 : 3, x, y, cosf(a) * s, sinf(a) * s, frand(0.8f, 1.6f),
+                               frand(0.12f, 0.3f) * power, shade, onWater ? 0.93f : shade * 0.75f,
+                               onWater ? 1.0f : shade * 0.5f, 1.0f);
+        p.gravity = -20.0f;
+        p.vrot = frand(-400, 400);
+    }
+    fxSparks(x, y, (int)(20 * power), 9.0f * power, 1.0f, 0.85f, 0.4f, -8.0f);
+}
+
+void fxUpdateParticles(float dt)
+{
+    for (size_t i = 0; i < fxParts.size(); i++) {
+        FxParticle &p = fxParts[i];
+        p.life -= dt;
+        float k = 1.0f / (1.0f + p.drag * dt);
+        p.vx *= k;
+        p.vy = p.vy * k + p.gravity * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt * fxAspect;
+        p.size += p.grow * dt;
+        if (p.size < 0.01f) p.size = 0.01f;
+        p.rot += p.vrot * dt;
+    }
+    size_t w = 0;
+    for (size_t i = 0; i < fxParts.size(); i++)
+        if (fxParts[i].life > 0 && fxParts[i].y > -3) fxParts[w++] = fxParts[i];
+    fxParts.resize(w);
+    if (fxParts.size() > 2600) fxParts.erase(fxParts.begin(), fxParts.begin() + (fxParts.size() - 2600));
+}
+
+void fxDisc(float x, float y, float rx, float ry, float r, float g, float b, float aIn, float aOut)
+{
+    glBegin(GL_TRIANGLE_FAN);
+    glColor4f(r, g, b, aIn);
+    glVertex2f(x, y);
+    glColor4f(r, g, b, aOut);
+    for (int i = 0; i <= 18; i++) {
+        float a = i * 6.2832f / 18.0f;
+        glVertex2f(x + cosf(a) * rx, y + sinf(a) * ry);
+    }
+    glEnd();
+}
+
+void fxDrawParticles(bool additive)
+{
+    for (size_t i = 0; i < fxParts.size(); i++) {
+        FxParticle &p = fxParts[i];
+        bool glow = (p.type == 1 || p.type == 2);
+        if (glow != additive) continue;
+        float t = p.life / p.maxLife;                  // 1 -> 0
+        float a = p.a * (t < 0.3f ? t / 0.3f : 1.0f);
+        if (p.type == 0 && t > 0.85f) a *= (1.0f - t) / 0.15f;
+        float rx = p.size, ry = p.size * fxAspect;
+        if (p.type == 0) {
+            fxDisc(p.x, p.y, rx, ry, p.r, p.g, p.b, a, 0.0f);
+        } else if (p.type == 1) {
+            float g = p.g * (0.6f + 0.4f * t);          // fire cools from yellow to red
+            fxDisc(p.x, p.y, rx, ry, p.r, g, p.b, a, 0.0f);
+        } else if (p.type == 2) {
+            glLineWidth(2.0f);
+            glBegin(GL_LINES);
+            glColor4f(p.r, p.g, p.b, a);
+            glVertex2f(p.x, p.y);
+            glColor4f(p.r, p.g * 0.6f, p.b * 0.3f, 0.0f);
+            glVertex2f(p.x - p.vx * 0.05f, p.y - p.vy * 0.05f * fxAspect);
+            glEnd();
+        } else if (p.type == 3) {
+            glPushMatrix();
+            glTranslatef(p.x, p.y, 0);
+            glScalef(1.0f, fxAspect, 1.0f);
+            glRotatef(p.rot, 0, 0, 1);
+            glColor4f(p.r, p.g, p.b, a);
+            glBegin(GL_POLYGON);
+            glVertex2f(-p.size, -p.size * 0.6f);
+            glVertex2f(p.size * 0.9f, -p.size * 0.4f);
+            glVertex2f(p.size * 0.5f, p.size * 0.7f);
+            glVertex2f(-p.size * 0.7f, p.size * 0.5f);
+            glEnd();
+            glPopMatrix();
+        } else if (p.type == 4) {
+            glLineWidth(3.0f);
+            glColor4f(p.r, p.g, p.b, a);
+            glBegin(GL_LINE_LOOP);
+            for (int k = 0; k < 40; k++) {
+                float an = k * 6.2832f / 40.0f;
+                glVertex2f(p.x + cosf(an) * rx, p.y + sinf(an) * ry);
+            }
+            glEnd();
+        }
+    }
+    glLineWidth(1.0f);
+}
+
+// ---------------------------------------------------------------- projectiles
+void fxLaunch(float x0, float y0, float x1, float y1, float arc, float dur, int kind, float r, float g, float b)
+{
+    FxShell s;
+    s.x0 = x0; s.y0 = y0; s.x1 = x1; s.y1 = y1; s.arc = arc; s.t = 0; s.dur = dur;
+    s.kind = kind; s.r = r; s.g = g; s.b = b;
+    fxShells.push_back(s);
+}
+
+void fxShellPos(const FxShell &s, float t, float &x, float &y)
+{
+    x = s.x0 + (s.x1 - s.x0) * t;
+    y = s.y0 + (s.y1 - s.y0) * t + s.arc * 4.0f * t * (1.0f - t);
+}
+
+void fxFireworkBurst(float x, float y)
+{
+    static const float colors[5][3] = {{0.95f, 0.15f, 0.2f}, {0.1f, 0.85f, 0.35f}, {1.0f, 0.85f, 0.3f},
+                                       {1.0f, 1.0f, 1.0f}, {0.95f, 0.15f, 0.2f}};
+    int c = rand() % 5;
+    for (int i = 0; i < 70; i++) {
+        float a = i * 6.2832f / 70.0f + frand(-0.05f, 0.05f), s = frand(5.0f, 8.5f);
+        FxParticle &p = fxEmit(2, x, y, cosf(a) * s, sinf(a) * s, frand(1.0f, 1.8f), 0.1f,
+                               colors[c][0], colors[c][1], colors[c][2], 1.0f);
+        p.gravity = -4.0f;
+        p.drag = 1.6f;
+    }
+    FxParticle &glow = fxEmit(1, x, y, 0, 0, 0.35f, 2.5f, colors[c][0], colors[c][1], colors[c][2], 0.6f);
+    glow.grow = 4.0f;
+}
+
+void fxUpdateShells(float dt)
+{
+    for (size_t i = 0; i < fxShells.size(); i++) {
+        FxShell &s = fxShells[i];
+        float x, y;
+        fxShellPos(s, s.t, x, y);
+        if (s.kind == 0 || s.kind == 2) {                       // smoke / sparkle trail
+            if (rand() % 2 == 0) {
+                FxParticle &p = fxEmit(s.kind == 2 ? 2 : 0, x, y, frand(-0.2f, 0.2f), frand(-0.2f, 0.2f),
+                                       s.kind == 2 ? 0.5f : 0.7f, s.kind == 2 ? 0.05f : 0.22f,
+                                       s.kind == 2 ? 1.0f : 0.6f, s.kind == 2 ? 0.8f : 0.6f,
+                                       s.kind == 2 ? 0.5f : 0.6f, 0.5f);
+                p.grow = 0.4f;
+            }
+        }
+        s.t += dt / s.dur;
+    }
+    for (size_t i = 0; i < fxShells.size();) {
+        FxShell &s = fxShells[i];
+        if (s.t >= 1.0f) {
+            if (s.kind == 0) fxExplosion(s.x1, s.y1, 0.75f, false);
+            else if (s.kind == 1) fxSplash(s.x1, s.y1, 0.6f);
+            else fxFireworkBurst(s.x1, s.y1);
+            fxShells.erase(fxShells.begin() + i);
+        } else {
+            i++;
+        }
+    }
+}
+
+void fxDrawShells()
+{
+    for (size_t i = 0; i < fxShells.size(); i++) {
+        FxShell &s = fxShells[i];
+        float x, y, px, py;
+        fxShellPos(s, s.t, x, y);
+        fxShellPos(s, max(0.0f, s.t - 0.06f), px, py);
+        glLineWidth(s.kind == 1 ? 2.0f : 3.0f);
+        glBegin(GL_LINES);
+        glColor4f(s.r, s.g, s.b, 1.0f);
+        glVertex2f(x, y);
+        glColor4f(s.r, s.g, s.b, 0.0f);
+        glVertex2f(px, py);
+        glEnd();
+        fxDisc(x, y, 0.35f, 0.35f * fxAspect, s.r, s.g, s.b, 0.9f, 0.0f);
+    }
+    glLineWidth(1.0f);
+}
+
+// -------------------------------------------------------------------- birds
+void fxSpawnFlock(float y, int n, float dir)
+{
+    for (int i = 0; i < n; i++) {
+        FxBird b;
+        b.x = (dir > 0 ? -84.0f : 30.0f) - dir * (i % 2 ? 2.2f : 0.0f) * (i / 2 + 1) * 1.4f;
+        b.y = y + (i % 2 ? 0.7f : -0.4f) * (i / 2 + 1) * 0.6f;
+        b.speed = dir * frand(5.5f, 6.5f);
+        b.phase = frand(0, 6.28f);
+        b.size = frand(0.55f, 0.8f);
+        fxBirds.push_back(b);
+    }
+}
+
+void fxUpdateDrawBirds(float dt, float r, float g, float bl)
+{
+    glLineWidth(2.0f);
+    glColor4f(r, g, bl, 0.9f);
+    for (size_t i = 0; i < fxBirds.size(); i++) {
+        FxBird &b = fxBirds[i];
+        b.x += b.speed * dt;
+        float flap = sinf(fxTime * 9.0f + b.phase);
+        float wy = b.size * (0.25f + 0.55f * flap) * fxAspect;
+        float y = b.y + 0.25f * sinf(fxTime * 1.3f + b.phase);
+        glBegin(GL_LINE_STRIP);
+        glVertex2f(b.x - b.size, y + wy);
+        glVertex2f(b.x - b.size * 0.35f, y + wy * 0.2f);
+        glVertex2f(b.x, y - 0.12f * fxAspect);
+        glVertex2f(b.x + b.size * 0.35f, y + wy * 0.2f);
+        glVertex2f(b.x + b.size, y + wy);
+        glEnd();
+    }
+    glLineWidth(1.0f);
+    for (size_t i = 0; i < fxBirds.size();)
+        if (fxBirds[i].x > 34 || fxBirds[i].x < -90) fxBirds.erase(fxBirds.begin() + i); else i++;
+}
+
+// ------------------------------------------------------------ helpers & text
+void fxRect(float x0, float y0, float x1, float y1, float r, float g, float b, float a)
+{
+    glColor4f(r, g, b, a);
+    glBegin(GL_QUADS);
+    glVertex2f(x0, y0); glVertex2f(x1, y0); glVertex2f(x1, y1); glVertex2f(x0, y1);
+    glEnd();
+}
+
+void fxStars(float yMin, float alpha)
+{
+    srand(77);
+    glPointSize(2.0f);
+    glBegin(GL_POINTS);
+    for (int i = 0; i < 90; i++) {
+        float x = frand(FX_X0, FX_X1), y = frand(yMin, FX_Y1), ph = frand(0, 6.28f);
+        float tw = 0.55f + 0.45f * sinf(fxTime * frand(1.5f, 3.5f) + ph);
+        glColor4f(1, 1, 0.9f, alpha * tw);
+        glVertex2f(x, y);
+    }
+    glEnd();
+    glPointSize(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 1971u);
+}
+
+float fxBitmapWidth(void *font, const char *s)
+{
+    float w = 0;
+    for (const char *c = s; *c; c++) w += glutBitmapWidth(font, *c);
+    return w;
+}
+
+void fxBitmapText(float x, float y, void *font, const char *s, float r, float g, float b, float a)
+{
+    glColor4f(r, g, b, a);
+    glRasterPos2f(x, y);
+    for (const char *c = s; *c; c++) glutBitmapCharacter(font, *c);
+}
+
+float fxStrokeWidth(const char *s)
+{
+    float w = 0;
+    for (const char *c = s; *c; c++) w += glutStrokeWidth(GLUT_STROKE_ROMAN, *c);
+    return w;
+}
+
+void fxStrokeText(float cx, float y, float height, const char *s, float r, float g, float b, float a, float width)
+{
+    float sy = height / 119.05f, sx = sy / fxAspect;
+    glPushMatrix();
+    glTranslatef(cx - fxStrokeWidth(s) * sx * 0.5f, y, 0);
+    glScalef(sx, sy, 1);
+    glLineWidth(width);
+    glColor4f(r, g, b, a);
+    for (const char *c = s; *c; c++) glutStrokeCharacter(GLUT_STROKE_ROMAN, *c);
+    glPopMatrix();
+    glLineWidth(1.0f);
+}
+
+float fxPixelsToWorldX(float px)
+{
+    int w = glutGet(GLUT_WINDOW_WIDTH);
+    return px * (FX_X1 - FX_X0) / (w > 0 ? w : 1);
+}
+
+// A banner that ripples in the wind (used for the flags on the watchtowers).
+void fxBanner(float x0, float x1, float yBottom, float yTop, float cx, float cy, float rad)
+{
+    const int N = 14;
+    float h = yTop - yBottom;
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= N; i++) {
+        float t = i / (float)N;                         // 0 at the top, 1 at the bottom
+        float y = yTop - h * t;
+        float sway = 0.022f * t * sinf(fxTime * 3.2f - t * 5.0f);
+        float shade = 0.85f + 0.18f * sinf(fxTime * 3.2f - t * 5.0f + 1.2f);
+        glColor3f(0.0f, 106 / 255.0f * shade, 78 / 255.0f * shade);
+        glVertex2f(x0 + sway, y);
+        glVertex2f(x1 + sway, y);
+    }
+    glEnd();
+    float tc = (yTop - cy) / h;
+    float swayC = 0.022f * tc * sinf(fxTime * 3.2f - tc * 5.0f);
+    glColor3ub(206, 17, 38);
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < 40; i++) {
+        float a = i * 6.2832f / 40.0f;
+        glVertex2f(cx + swayC + rad * cosf(a), cy + rad * sinf(a));
+    }
+    glEnd();
+}
+
+// A flag on a pole that waves (the national flag in the modern scene).
+void fxWavingFlag(float poleX, float poleBottom, float poleTop, float width)
+{
+    float heightY = width * 0.6f * fxAspect;
+    glLineWidth(4.0f);
+    glColor4f(0.35f, 0.35f, 0.38f, 1.0f);
+    glBegin(GL_LINES);
+    glVertex2f(poleX, poleBottom);
+    glVertex2f(poleX, poleTop);
+    glEnd();
+    glLineWidth(1.0f);
+    const int N = 24;
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= N; i++) {
+        float t = i / (float)N;
+        float wave = sinf(fxTime * 4.0f - t * 7.0f) * 0.28f * t * fxAspect;
+        float shade = 0.82f + 0.18f * cosf(fxTime * 4.0f - t * 7.0f);
+        glColor4f(0.0f, 0.42f * shade, 0.31f * shade, 1.0f);
+        glVertex2f(poleX + width * t, poleTop + wave);
+        glVertex2f(poleX + width * t, poleTop - heightY + wave);
+    }
+    glEnd();
+    float t = 0.45f, wave = sinf(fxTime * 4.0f - t * 7.0f) * 0.28f * t * fxAspect;
+    float r = heightY * 0.33f;
+    glColor4f(0.81f, 0.07f, 0.15f, 1.0f);
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < 40; i++) {
+        float a = i * 6.2832f / 40.0f;
+        glVertex2f(poleX + width * t + cosf(a) * r / fxAspect, poleTop - heightY * 0.5f + wave + sinf(a) * r);
+    }
+    glEnd();
+}
+
+// --------------------------------------------------------- scene bookkeeping
+int fxCurrentScene()
+{
+    if (show_display1) return 1;
+    if (show_display2) return 2;
+    if (show_display3) return 3;
+    if (show_display4) return 4;
+    if (show_display5) return 5;
+    return 0;
+}
+
+void fxShowScene(int n)
+{
+    show_display1 = (n == 1);
+    show_display2 = (n == 2);
+    show_display3 = (n == 3);
+    show_display4 = (n == 4);
+    show_display5 = (n == 5);
+}
+
+// Called whenever a scene is opened, so its one-off events play again.
+void fxOnSceneEnter(int n)
+{
+    fxParts.clear();
+    fxShells.clear();
+    fxBirds.clear();
+    fxSceneTime = 0;
+    fxFade = 1.0f;
+    fxShake = fxFlash = 0;
+    fxNextFire = 1.8f; fxNextReturn = 2.2f; fxNextTank = 2.5f; fxNextBirds = 1.0f;
+    fxNextBolt = 3.0f; fxNextRocket = 0.8f;
+    fxSeenExplosion = 0;
+    fxJetAuto = false;
+    if (n == 1) {                       // the rocket launcher fires again
+        _move2 = 0.1f; rocket = 0.02f; misaelstatus = 0; _move1 = 0.1f; misael = 0.02f;
+    } else if (n == 2) {                // the train crosses and the jet bombs the bridge
+        _move_jet_x_t = 0; _move_jet_y_t = 0; _move_bomb_t = 0; _move_span_t = 0; object_t = 0.2f;
+        bombstatus_t = 0; explosionstatus_t = 0; jetstatus_t = 0; _move_train_t = 0;
+        cloudstatus_t = 1; boatstatus_t = 1; trainstatus_t = 1;
+    } else if (n == 3) {                // the gunboats sail in again
+        _move_boat_a = 0; number_a = 0.02f;
+    } else if (n == 4) {
+        boatstatus_n = 1;
+    }
+}
+
+void fxStoryStart()
+{
+    fxStory = true;
+    fxStoryTime = 0;
+    fxShowScene(1);
+    fxOnSceneEnter(1);
+}
+
+void fxStoryStop() { fxStory = false; }
+
+// ----------------------------------------------------------- per-scene logic
+void fxScene1(float dt)
+{
+    static const float emit[4][3] = {{-66.5f, 20.5f, 1.0f}, {-76.5f, 9.8f, 0.8f}, {-34.3f, 19.0f, 0.9f}, {-40.5f, 6.2f, 1.1f}};
+    for (int i = 0; i < 4; i++) {
+        if (frand(0, 1) < dt * 24) fxSmoke(emit[i][0], emit[i][1], 0.6f * emit[i][2], frand(0.24f, 0.4f), 0.24f, 3.2f, 1.6f, 5.5f);
+        if (frand(0, 1) < dt * 40) fxFire(emit[i][0], emit[i][1] - 0.4f, 1.3f * emit[i][2]);
+        if (frand(0, 1) < dt * 3) {
+            FxParticle &e = fxEmit(2, emit[i][0], emit[i][1], frand(-0.6f, 1.6f), frand(1.5f, 3.5f), frand(0.8f, 1.6f), 0.06f, 1, 0.6f, 0.2f, 1);
+            e.drag = 0.4f;
+        }
+    }
+    if (frand(0, 1) < dt * 2.5f) {      // drifting sand
+        FxParticle &p = fxEmit(0, -82, frand(1, 24), frand(9, 14), 0, 9.0f, frand(1.5f, 3.0f), 0.86f, 0.75f, 0.5f, 0.12f);
+        p.grow = 0.2f;
+    }
+    if (fxSceneTime > fxNextTank) {     // the tank at the top fires north
+        fxNextTank = fxSceneTime + frand(3.0f, 4.5f);
+        float x = -2.2f, y = 24.4f;
+        FxParticle &f = fxEmit(1, x, y, 0, 0, 0.14f, 1.4f, 1, 0.9f, 0.5f, 1);
+        f.grow = 3.0f;
+        for (int i = 0; i < 6; i++) fxSmoke(x, y, 0.5f, 0.7f, 0.45f, frand(-1.2f, 1.2f), frand(0.5f, 2.0f), 1.6f);
+        fxLaunch(x, y, x - 0.6f, 30.0f, 0, 0.35f, 1, 1, 0.9f, 0.5f);
+        fxShake = max(fxShake, 0.12f);
+    }
+    if (fxAnchors[A_MISSILE1].ok && misaelstatus == 1 && misael != 0) {   // missile exhaust
+        float x = fxAnchors[A_MISSILE1].x, y = fxAnchors[A_MISSILE1].y;
+        fxFire(x, y, 0.8f);
+        if (frand(0, 1) < dt * 40) fxSmoke(x, y, 0.45f, 0.75f, 0.5f, frand(0.8f, 2.0f), frand(-0.2f, 0.4f), 2.2f);
+    }
+    if (!day) {                          // searchlight sweeping from the station
+        float ang = 2.2f + 0.55f * sinf(fxTime * 0.6f);
+        float x = -6.0f, y = 12.0f, len = 34.0f;
+        glBegin(GL_TRIANGLES);
+        glColor4f(1.0f, 0.95f, 0.7f, 0.35f);
+        glVertex2f(x, y);
+        glColor4f(1.0f, 0.95f, 0.7f, 0.0f);
+        glVertex2f(x + cosf(ang - 0.12f) * len, y + sinf(ang - 0.12f) * len * fxAspect);
+        glVertex2f(x + cosf(ang + 0.12f) * len, y + sinf(ang + 0.12f) * len * fxAspect);
+        glEnd();
+    }
+}
+
+void fxScene1Weather(float dt)
+{
+    if (!rainy) return;
+    fxRect(FX_X0, 0, FX_X1, FX_Y1, 0.1f, 0.12f, 0.2f, 0.28f);
+    srand(4242);
+    glLineWidth(1.5f);
+    glBegin(GL_LINES);
+    for (int i = 0; i < 260; i++) {
+        float x = frand(FX_X0 - 10, FX_X1), y0 = frand(0, 40), sp = frand(28, 40);
+        float y = fmodf(y0 - fxTime * sp, 30.0f);
+        if (y < 0) y += 30.0f;
+        float xx = x + (30.0f - y) * 0.25f;
+        glColor4f(0.8f, 0.85f, 1.0f, 0.0f);
+        glVertex2f(xx + 0.5f, y + 1.6f);
+        glColor4f(0.8f, 0.85f, 1.0f, 0.55f);
+        glVertex2f(xx, y);
+    }
+    glEnd();
+    glLineWidth(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 99u);
+    if (fxSceneTime > fxNextBolt) {      // lightning
+        fxNextBolt = fxSceneTime + frand(3.5f, 7.0f);
+        fxBolt = 0.35f;
+        fxBoltX = frand(-70, 15);
+        fxFlash = max(fxFlash, 0.45f);
+    }
+    if (fxBolt > 0) {
+        fxBolt -= dt;
+        srand((unsigned)(fxBoltX * 100));
+        glLineWidth(3.0f);
+        glColor4f(0.9f, 0.95f, 1.0f, min(1.0f, fxBolt * 4.0f));
+        glBegin(GL_LINE_STRIP);
+        float x = fxBoltX;
+        for (float y = 25.0f; y > 6.0f; y -= 1.6f) {
+            glVertex2f(x, y);
+            x += frand(-1.6f, 1.6f);
+        }
+        glEnd();
+        glLineWidth(1.0f);
+        srand((unsigned)(fxTime * 1000.0f) + 7u);
+    }
+}
+
+float fxRiver2Left(float y) { return y > 4.6f ? -68.5f + (y - 4.6f) * (21.5f / 11.1f) : -72.0f; }
+float fxRiver2Right(float y) { return y > 4.6f ? 0.5f - (y - 4.6f) * (21.5f / 11.1f) : 8.0f; }
+
+void fxScene2(float dt)
+{
+    // Water shimmer on the river.
+    srand(2026);
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    for (int i = 0; i < 70; i++) {
+        float y = frand(0.6f, 15.2f);
+        if (y > 3.4f && y < 5.4f) continue;              // the bridge deck
+        float l = fxRiver2Left(y), r = fxRiver2Right(y);
+        float x = l + fmodf(frand(0, 1) * (r - l) + fxTime * 0.8f, max(1.0f, r - l));
+        float len = frand(0.6f, 1.6f) * (1.4f - y / 18.0f);
+        float a = 0.25f + 0.25f * sinf(fxTime * frand(1.5f, 3.0f) + i);
+        glColor4f(1, 1, 1, a);
+        glVertex2f(x, y);
+        glVertex2f(min(r, x + len), y);
+    }
+    glEnd();
+    glLineWidth(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 3u);
+
+    if (nightstatus_t) fxStars(16.5f, 0.9f);
+
+    if (!fxJetAuto && fxSceneTime > 1.2f) { fxJetAuto = true; if (bombstatus_t == 0) jetstatus_t = 1; }
+    if (fxAnchors[A_JET2_TAIL].ok && jetstatus_t == 1) {  // afterburner and trail
+        float x = fxAnchors[A_JET2_TAIL].x, y = fxAnchors[A_JET2_TAIL].y;
+        if (x > FX_X0 - 2 && y > -1) {
+            FxParticle &g = fxEmit(1, x, y, 0, 0, 0.08f, 0.7f, 1.0f, 0.6f, 0.15f, 0.9f);
+            g.grow = -2.0f;
+            if (frand(0, 1) < dt * 60) fxSmoke(x, y, 0.35f, 0.8f, 0.45f, frand(0.5f, 1.2f), frand(-0.1f, 0.3f), 1.8f);
+        }
+    }
+    if (fxAnchors[A_BOMB2].ok && bombstatus_t == 1 && explosionstatus_t == 0 && frand(0, 1) < dt * 50)
+        fxSmoke(fxAnchors[A_BOMB2].x, fxAnchors[A_BOMB2].y, 0.2f, 0.7f, 0.45f, 0, 0.3f, 0.8f);
+
+    if (explosionstatus_t == 1 && !fxSeenExplosion) {      // the bridge is hit
+        fxSeenExplosion = 1;
+        fxExplosion(-39.2f, 5.3f, 1.6f, false);
+        fxFlash = 0.7f;
+        fxShake = 0.9f;
+        for (int i = 0; i < 4; i++) fxLaunch(-39.2f, 5.3f, frand(-44, -34), 2.2f, frand(1.5f, 3.0f), frand(0.6f, 1.0f), 1, 0.35f, 0.25f, 0.15f);
+    }
+    if (explosionstatus_t == 1) {                          // the broken span keeps burning
+        if (frand(0, 1) < dt * 30) fxFire(-39.2f, 4.8f, 1.2f);
+        if (frand(0, 1) < dt * 16) fxSmoke(-39.2f, 5.6f, 0.9f, frand(0.18f, 0.32f), 0.3f, 2.0f, 4.2f, 7.0f);
+    }
+    if (fxSceneTime > fxNextBirds) {
+        fxNextBirds = fxSceneTime + 13.0f;
+        fxSpawnFlock(frand(19.5f, 22.5f), 7, 1.0f);
+    }
+}
+
+void fxScene3(float dt)
+{
+    static const float targets[10][2] = {{-6, 13.6f}, {1, 12.2f}, {4, 8.2f}, {13, 4.6f}, {-14, 14.2f},
+                                         {-20, 11.2f}, {-7, 10.4f}, {-8, 7.3f}, {2, 5.2f}, {9, 15.0f}};
+    static const float shore[4][2] = {{-5, 14.6f}, {1, 13.4f}, {4.5f, 9.4f}, {14, 6.2f}};
+
+    float shoreAt14 = -55.0f;
+    srand(1209);                                            // waves rolling in
+    glLineWidth(2.0f);
+    for (int i = 0; i < 46; i++) {
+        float y = frand(0.4f, 15.2f);
+        float shoreX = -55.0f + (15.7f - y) * (80.7f / 15.7f);
+        float x = FX_X0 + fmodf(frand(0, 120) + fxTime * frand(1.0f, 2.2f), shoreX - FX_X0 + 0.01f);
+        float w = frand(1.2f, 2.6f) * (1.3f - y / 20.0f);
+        float a = 0.35f * (0.5f + 0.5f * sinf(fxTime * 2.0f + i));
+        glColor4f(1, 1, 1, a);
+        glBegin(GL_LINE_STRIP);
+        for (int k = 0; k <= 6; k++) {
+            float t = k / 6.0f;
+            glVertex2f(min(shoreX, x + w * t), y + sinf(t * 3.1416f) * 0.18f);
+        }
+        glEnd();
+    }
+    glLineWidth(3.0f);                                      // foam along the shore
+    glBegin(GL_POINTS);
+    for (int i = 0; i < 60; i++) {
+        float t = i / 60.0f, y = 15.7f - t * 15.7f;
+        float x = -55.0f + t * 80.7f - 0.6f;
+        glColor4f(1, 1, 1, 0.45f + 0.45f * sinf(fxTime * 3.0f + i * 0.7f));
+        glVertex2f(x, y);
+    }
+    glEnd();
+    glLineWidth(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 5u);
+    (void)shoreAt14;
+
+    if (nightstatus_a) fxStars(16.0f, 0.9f);
+
+    fxRecoil[0] *= expf(-6.0f * dt);
+    fxRecoil[1] *= expf(-6.0f * dt);
+
+    if (fxSceneTime > fxNextFire && fxAnchors[A_GUN3_0].ok && fxAnchors[A_GUN3_1].ok) {  // gunboats fire
+        fxNextFire = fxSceneTime + frand(1.1f, 1.8f);
+        int g = fxGunTurn++ % 2;
+        float x = fxAnchors[A_GUN3_0 + g].x, y = fxAnchors[A_GUN3_0 + g].y;
+        FxParticle &f = fxEmit(1, x + 0.6f, y, 0, 0, 0.12f, 1.3f, 1, 0.95f, 0.6f, 1);
+        f.grow = 6.0f;
+        for (int i = 0; i < 5; i++) fxSmoke(x + 0.8f, y, 0.55f, 0.75f, 0.5f, frand(0.5f, 2.5f), frand(0.2f, 1.2f), 2.0f);
+        const float *t = targets[rand() % 10];
+        fxLaunch(x + 0.5f, y, t[0] + frand(-1.5f, 1.5f), t[1] + frand(-0.6f, 0.6f), frand(2.0f, 4.0f), frand(0.8f, 1.2f),
+                 0, 1.0f, 0.75f, 0.3f);
+        fxRecoil[g] = -0.05f;
+        fxShake = max(fxShake, 0.15f);
+    }
+    if (fxSceneTime > fxNextReturn) {                       // fighters on the shore fire back
+        fxNextReturn = fxSceneTime + frand(0.35f, 0.9f);
+        const float *s = shore[rand() % 4];
+        float tx = frand(-60, -22), ty = frand(1.5f, 11.0f);
+        fxLaunch(s[0], s[1], tx, ty, frand(0.2f, 0.8f), frand(0.5f, 0.8f), 1, 1.0f, 0.95f, 0.4f);
+        FxParticle &m = fxEmit(1, s[0], s[1], 0, 0, 0.08f, 0.5f, 1, 0.9f, 0.5f, 1);
+        m.grow = 2.0f;
+    }
+    if (fxAnchors[A_JET3_TAIL].ok && frand(0, 1) < dt * 50) {
+        float x = fxAnchors[A_JET3_TAIL].x, y = fxAnchors[A_JET3_TAIL].y;
+        if (x > FX_X0 && x < FX_X1) fxSmoke(x, y, 0.3f, 0.85f, 0.4f, frand(0.4f, 1.0f), 0.1f, 1.8f);
+    }
+}
+
+void fxScene4(float dt)
+{
+    srand(4004);                                            // the river flows toward us
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    for (int i = 0; i < 46; i++) {
+        float u = frand(0, 1), ph = frand(0, 1);
+        float y = 15.0f - fmodf(ph * 15.0f + fxTime * (0.9f + u * 0.6f), 15.0f);
+        float l = y > 9.5f ? -50.0f + (15.0f - y) * (3.0f / 5.5f) : -47.0f - (9.5f - y) * (6.0f / 9.5f);
+        float r = y > 9.5f ? -13.0f - (15.0f - y) * (4.0f / 5.5f) : -17.0f + (9.5f - y) * (8.0f / 9.5f);
+        float x = l + (r - l) * frand(0.05f, 0.95f);
+        float len = 0.5f + (15.0f - y) * 0.09f;
+        glColor4f(1, 1, 1, 0.35f * (0.4f + 0.6f * (15.0f - y) / 15.0f));
+        glVertex2f(x, y);
+        glVertex2f(x, y - len * fxAspect);
+    }
+    glEnd();
+    glLineWidth(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 11u);
+
+    float pulse = 0.5f + 0.5f * sinf(fxTime * 1.4f);       // the rising sun glows
+    if (!nightstatus_n) fxDisc(-28.5f, 16.7f, 4.5f + pulse, (4.5f + pulse) * fxAspect, 1.0f, 0.55f, 0.15f, 0.35f, 0.0f);
+    else fxStars(16.0f, 0.9f);
+
+    static const float plumes[3][2] = {{-61.0f, 16.6f}, {-3.0f, 16.6f}, {13.5f, 16.8f}};
+    for (int i = 0; i < 3; i++)                             // villages still burning beyond the trees
+        if (frand(0, 1) < dt * 12) fxSmoke(plumes[i][0], plumes[i][1], 0.8f, frand(0.3f, 0.42f), 0.24f, 1.1f, 3.6f, 9.0f);
+    if (frand(0, 1) < dt * 14) {                            // falling ash
+        FxParticle &p = fxEmit(0, frand(-82, 22), 25.5f, frand(0.3f, 1.2f), frand(-1.4f, -0.7f), 14.0f, frand(0.07f, 0.14f),
+                               0.35f, 0.33f, 0.32f, 0.7f);
+        (void)p;
+    }
+    if (nightstatus_n && frand(0, 1) < dt * 6) {            // fireflies by the river
+        float x = frand(0, 1) < 0.5f ? frand(-78, -52) : frand(-12, 22);
+        FxParticle &f = fxEmit(1, x, frand(1.0f, 9.0f), frand(-0.4f, 0.4f), frand(-0.2f, 0.4f), frand(2.0f, 3.5f), 0.25f, 0.8f, 1.0f, 0.3f, 0.9f);
+        (void)f;
+    }
+    if (fxSceneTime > fxNextBirds) {
+        fxNextBirds = fxSceneTime + 15.0f;
+        fxSpawnFlock(frand(20.5f, 23.0f), 5, -1.0f);
+    }
+}
+
+void fxScene5(float dt)
+{
+    srand(5005);                                            // sun glints on the water
+    glPointSize(3.0f);
+    glBegin(GL_POINTS);
+    for (int i = 0; i < 70; i++) {
+        float x = frand(-50, 25), y = frand(0.3f, 19.5f);
+        if (y > 12.0f && y < 16.4f) continue;               // highway
+        if (x < -45.0f + (y - 4.0f) * 0.0f && y > 10.0f) continue;
+        float tw = sinf(fxTime * frand(2.0f, 4.0f) + i);
+        if (tw < 0.6f) continue;
+        glColor4f(1, 1, 1, (tw - 0.6f) * 2.2f);
+        glVertex2f(x + fmodf(fxTime * 0.5f, 3.0f), y);
+    }
+    glEnd();
+    glPointSize(1.0f);
+    srand((unsigned)(fxTime * 1000.0f) + 13u);
+
+    for (int i = 0; i < 3; i++)                             // steam from the power plant
+        if (fxAnchors[A_TOWER5_0 + i].ok && frand(0, 1) < dt * 9)
+            fxSmoke(fxAnchors[A_TOWER5_0 + i].x, fxAnchors[A_TOWER5_0 + i].y, 0.8f,
+                    nightstatus_d ? 0.55f : 0.97f, nightstatus_d ? 0.3f : 0.55f, 1.0f, 1.8f, 4.0f);
+
+    if (fxAnchors[A_PLANE5_TAIL].ok && frand(0, 1) < dt * 40) {
+        float x = fxAnchors[A_PLANE5_TAIL].x, y = fxAnchors[A_PLANE5_TAIL].y;
+        if (x > FX_X0 && x < FX_X1) fxSmoke(x, y, 0.22f, 1.0f, 0.5f, -0.3f, 0.05f, 2.5f);
+    }
+
+    if (nightstatus_d) {
+        fxStars(18.0f, 0.9f);
+        for (float x = -76.0f; x < 25.0f; x += 7.5f) {       // highway lamps
+            fxDisc(x, 16.6f, 0.9f, 0.9f * fxAspect, 1.0f, 0.85f, 0.45f, 0.75f, 0.0f);
+            fxDisc(x, 16.6f, 0.15f, 0.15f * fxAspect, 1.0f, 1.0f, 0.85f, 1.0f, 1.0f);
+        }
+        int cars[2] = {A_CAR5_1, A_CAR5_2};
+        float dir[2] = {1.0f, -1.0f};
+        for (int i = 0; i < 2; i++) {                       // headlights
+            if (!fxAnchors[cars[i]].ok) continue;
+            float x = fxAnchors[cars[i]].x, y = fxAnchors[cars[i]].y;
+            glBegin(GL_TRIANGLES);
+            glColor4f(1.0f, 0.95f, 0.6f, 0.55f);
+            glVertex2f(x, y);
+            glColor4f(1.0f, 0.95f, 0.6f, 0.0f);
+            glVertex2f(x + dir[i] * 9.0f, y + 1.2f);
+            glVertex2f(x + dir[i] * 9.0f, y - 0.8f);
+            glEnd();
+        }
+        if (fxSceneTime > fxNextRocket) {                   // Victory Day fireworks
+            fxNextRocket = fxSceneTime + frand(0.6f, 1.3f);
+            float x = frand(-62, 18);
+            fxLaunch(x, 5.5f, x + frand(-3, 3), frand(17.5f, 23.5f), 0.0f, frand(0.9f, 1.3f), 2, 1.0f, 0.85f, 0.5f);
+        }
+    } else if (fxSceneTime > fxNextBirds) {
+        fxNextBirds = fxSceneTime + 12.0f;
+        fxSpawnFlock(frand(19.0f, 21.5f), 6, 1.0f);
+    }
+}
+
+// --------------------------------------------------------- titles & captions
+const char *fxTitles[6][2] = {
+    {"", ""},
+    {"1971  |  WAR-TORN RAILWAY STATION", "Armour rolls through a bombed-out railway yard. Keys: L night, K day, M rain"},
+    {"1971  |  HARDINGE BRIDGE", "The bridge is bombed to cut the supply line. Keys: A/B clouds, C/D boats, E/F jet, G/H train, I/J night/day"},
+    {"1971  |  COASTAL WARFARE", "Gunboats shell the shore while the freedom fighters fire back. Keys: N night, O day"},
+    {"1971  |  AFTERMATH", "A countryside left in ruins after nine months of war. Keys: P/Q boat, R night, S day"},
+    {"TODAY  |  MODERN BANGLADESH", "From ashes to glory: power, bridges and Victory Day lights. Keys: T night, U day"},
+};
+
+void fxDrawCaption(int n)
+{
+    float t = fxSceneTime;
+    float a = t < 0.6f ? t / 0.6f : (t < 6.0f ? 1.0f : max(0.0f, 1.0f - (t - 6.0f) / 1.2f));
+    if (a <= 0 || n < 1 || n > 5) return;
+    float x0 = FX_X0 + 2.0f, y0 = 1.4f;
+    float w = max(fxPixelsToWorldX(fxBitmapWidth(GLUT_BITMAP_HELVETICA_18, fxTitles[n][0])),
+                  fxPixelsToWorldX(fxBitmapWidth(GLUT_BITMAP_HELVETICA_12, fxTitles[n][1]))) + 2.4f;
+    fxRect(x0, y0, x0 + w, y0 + 3.4f, 0.04f, 0.05f, 0.06f, 0.62f * a);
+    fxRect(x0, y0, x0 + 0.35f, y0 + 3.4f, 0.0f, 0.42f, 0.31f, a);
+    fxRect(x0, y0 + 3.4f - 0.18f, x0 + w, y0 + 3.4f, 0.81f, 0.07f, 0.15f, a);
+    fxBitmapText(x0 + 1.2f, y0 + 1.9f, GLUT_BITMAP_HELVETICA_18, fxTitles[n][0], 1, 1, 1, a);
+    fxBitmapText(x0 + 1.2f, y0 + 0.7f, GLUT_BITMAP_HELVETICA_12, fxTitles[n][1], 0.85f, 0.88f, 0.85f, a);
+}
+
+void fxDrawTitle(float dt)
+{
+    glBegin(GL_QUADS);                                     // dusk sky
+    glColor4f(0.02f, 0.10f, 0.08f, 1); glVertex2f(FX_X0, FX_Y1); glVertex2f(FX_X1, FX_Y1);
+    glColor4f(0.35f, 0.08f, 0.06f, 1); glVertex2f(FX_X1, 6.0f); glVertex2f(FX_X0, 6.0f);
+    glEnd();
+    float sunY = 6.0f + 2.5f * (0.5f + 0.5f * sinf(fxTime * 0.3f));
+    fxDisc(-27.0f, sunY, 16.0f, 16.0f * fxAspect, 0.9f, 0.25f, 0.1f, 0.35f, 0.0f);
+    fxDisc(-27.0f, sunY, 7.0f, 7.0f * fxAspect, 0.82f, 0.07f, 0.15f, 1.0f, 1.0f);
+    glBegin(GL_POLYGON);                                   // tree line
+    glColor4f(0.01f, 0.06f, 0.04f, 1);
+    glVertex2f(FX_X0, 0);
+    for (float x = FX_X0; x <= FX_X1 + 1.0f; x += 1.0f)
+        glVertex2f(x, 6.0f + 0.9f * fabsf(sinf(x * 0.35f)) + 0.6f * fabsf(sinf(x * 0.11f + 1.0f)));
+    glVertex2f(FX_X1, 0);
+    glEnd();
+    if (frand(0, 1) < dt * 25) {                            // embers drifting up
+        FxParticle &e = fxEmit(1, frand(FX_X0, FX_X1), 5.5f, frand(-0.5f, 1.2f), frand(1.5f, 3.5f), frand(3, 6), 0.12f, 1, 0.55f, 0.15f, 0.9f);
+        (void)e;
+    }
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    fxDrawParticles(true);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    fxStrokeText(-27.0f, 16.0f, 2.6f, "FROM ASHES TO GLORY", 1, 1, 1, 1, 3.0f);
+    fxStrokeText(-27.0f, 13.2f, 1.6f, "1971", 0.95f, 0.75f, 0.35f, 1, 2.5f);
+    const char *sub = "The Liberation War of Bangladesh in five animated scenes";
+    const char *keys = "Press 1 - 5 to open a scene    |    SPACE plays all five as a story";
+    float w1 = fxPixelsToWorldX(fxBitmapWidth(GLUT_BITMAP_HELVETICA_18, sub));
+    float w2 = fxPixelsToWorldX(fxBitmapWidth(GLUT_BITMAP_HELVETICA_18, keys));
+    fxBitmapText(-27.0f - w1 * 0.5f, 10.8f, GLUT_BITMAP_HELVETICA_18, sub, 0.9f, 0.92f, 0.9f, 1);
+    float blink = 0.55f + 0.45f * sinf(fxTime * 3.0f);
+    fxBitmapText(-27.0f - w2 * 0.5f, 2.6f, GLUT_BITMAP_HELVETICA_18, keys, 1.0f, 0.85f, 0.4f, blink);
+}
+
+// ------------------------------------------------------------------ frame
+void fxBeginFrame()
+{
+    int now = glutGet(GLUT_ELAPSED_TIME);
+    fxDt = fxLastMs < 0 ? 0.016f : (now - fxLastMs) / 1000.0f;
+    if (fxDt > 0.05f) fxDt = 0.05f;
+    if (fxDt < 0.0f) fxDt = 0.0f;
+    fxLastMs = now;
+    fxTime += fxDt;
+    fxSceneTime += fxDt;
+
+    int w = glutGet(GLUT_WINDOW_WIDTH), h = glutGet(GLUT_WINDOW_HEIGHT);
+    if (w > 0 && h > 0) fxAspect = ((float)w / (FX_X1 - FX_X0)) / ((float)h / FX_Y1);
+
+    if (fxStory) {
+        fxStoryTime += fxDt;
+        int scene = 1 + (int)(fxStoryTime / FX_STORY_SCENE);
+        if (scene > 5) {
+            fxStory = false;
+            fxShowScene(0);
+            fxOnSceneEnter(0);
+        } else if (scene != fxCurrentScene()) {
+            fxShowScene(scene);
+            fxOnSceneEnter(scene);
+        }
+    }
+
+    fxScene = fxCurrentScene();
+    if (fxScene != fxPrevScene) {
+        if (fxPrevScene != -1 && fxSceneTime > 0.05f) fxOnSceneEnter(fxScene);
+        fxPrevScene = fxScene;
+    }
+
+    fxShake *= expf(-4.0f * fxDt);
+    if (fxShake < 0.01f) fxShake = 0;
+    fxShakeX = frand(-1, 1) * fxShake;
+    fxShakeY = frand(-1, 1) * fxShake * fxAspect;
+    fxFlash *= expf(-5.0f * fxDt);
+    fxFade = max(0.0f, fxFade - fxDt * 1.6f);
+
+    for (int i = 0; i < A_COUNT; i++) fxAnchors[i].ok = false;
+    fxGunCounter = 0;
+    fxTowerCounter = 0;
+}
+
+void fxDrawWorld()
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    switch (fxScene) {
+        case 1: fxScene1(fxDt); break;
+        case 2: fxScene2(fxDt); break;
+        case 3: fxScene3(fxDt); break;
+        case 4: fxScene4(fxDt); break;
+        case 5: fxScene5(fxDt); break;
+    }
+    fxUpdateShells(fxDt);
+    fxUpdateParticles(fxDt);
+    fxDrawParticles(false);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    fxDrawParticles(true);
+    fxDrawShells();
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (fxScene == 4) fxUpdateDrawBirds(fxDt, 0.08f, 0.08f, 0.08f);
+    else if (fxScene == 2 || fxScene == 5) fxUpdateDrawBirds(fxDt, 0.12f, 0.12f, 0.15f);
+    if (fxScene == 5) fxWavingFlag(-47.0f, 16.6f, 23.6f, 6.5f);
+    if (fxScene == 1) fxScene1Weather(fxDt);
+    glDisable(GL_BLEND);
+}
+
+void fxDrawOverlay()
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (fxScene == 0) {
+        fxUpdateParticles(fxDt);
+        fxDrawTitle(fxDt);
+    } else {
+        fxDrawCaption(fxScene);
+    }
+    if (fxFlash > 0.01f) fxRect(FX_X0, 0, FX_X1, FX_Y1, 1.0f, 0.97f, 0.9f, fxFlash);
+    if (fxFade > 0.01f) fxRect(FX_X0, 0, FX_X1, FX_Y1, 0, 0, 0, fxFade);
+    if (fxStory && fxScene != 0) {
+        float p = fmodf(fxStoryTime, FX_STORY_SCENE) / FX_STORY_SCENE;
+        fxRect(FX_X0, 0, FX_X0 + (FX_X1 - FX_X0) * ((fxScene - 1) + p) / 5.0f, 0.18f, 0.81f, 0.07f, 0.15f, 0.9f);
+    }
+    glDisable(GL_BLEND);
+}
+
+void fxTick(int value)
+{
+    glutPostRedisplay();
+    glutTimerFunc(16, fxTick, 0);
+}
+//==============================================================================
+
 void display()
 {
+    fxBeginFrame();
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(1,1,1,1);
+    glPushMatrix();
+    glTranslatef(fxShakeX, fxShakeY, 0);
     if(show_display1)
     display1();
     if(show_display2)
@@ -12510,6 +13515,9 @@ void display()
     display4();
     if(show_display5)
     display5();
+    fxDrawWorld();
+    glPopMatrix();
+    fxDrawOverlay();
     glutSwapBuffers();
     glFlush();
 
@@ -12517,6 +13525,17 @@ void display()
 
 void mykeyboard_t(unsigned char key, int x, int y)
 {
+    if (key == ' ') {                    // story mode: play all five scenes in order
+        if (fxStory) { fxStoryStop(); fxShowScene(0); fxOnSceneEnter(0); }
+        else fxStoryStart();
+        return;
+    }
+    if (key == 27) {                     // Esc: back to the title screen
+        fxStoryStop();
+        fxShowScene(0);
+        fxOnSceneEnter(0);
+        return;
+    }
     //-------------------------------jobaer----------------------
 	 if (key == 'A' || key == 'a'){		////cloud starting
 		cloudstatus_t = 1;
@@ -12637,6 +13656,11 @@ void mykeyboard_t(unsigned char key, int x, int y)
         show_display4=false;
         show_display1=false;
     }
+    if (key >= '1' && key <= '5') {      // re-open the scene so its events play again
+        fxStoryStop();
+        fxOnSceneEnter(key - '0');
+        fxPrevScene = key - '0';
+    }
 }
 
 
@@ -12665,13 +13689,13 @@ int main(int argc, char** argv)
     //-------------------------rifah-------------------
     glutTimerFunc(20, update_s, 0); // Add a timer
 	glutTimerFunc(15, update1_s, 0); // Add a timer
-	glutTimerFunc(10, update2_s, 0); //Add a timer
-	glutTimerFunc(5, update3_s, 0);
+	glutTimerFunc(15, update2_s, 0); //Add a timer
+	glutTimerFunc(15, update3_s, 0);
 	//-------------------------------shayan-----------
-	glutTimerFunc(4, update_a, 0);
-    glutTimerFunc(4, update3_a, 0);
-    glutTimerFunc(4, update2_a, 0);
-    glutTimerFunc(4, update4_a, 0);
+	glutTimerFunc(15, update_a, 0);
+    glutTimerFunc(15, update3_a, 0);
+    glutTimerFunc(15, update2_a, 0);
+    glutTimerFunc(15, update4_a, 0);
     //----------------------------saymon---------------------
     glutTimerFunc(20, update5_N, 0);
     glutTimerFunc(20, update6_N, 0);
@@ -12688,6 +13712,9 @@ int main(int argc, char** argv)
 	glutTimerFunc(20, update4, 0);
 	glutTimerFunc(20, update5, 0);
 	glutTimerFunc(20, update6, 0);
+    //----------------------------living scenes------------------------
+    srand(1971);
+    glutTimerFunc(16, fxTick, 0);
 
 	cout<<"obj2-Cloud move 'A'"<<endl;
 	cout<<"obj2-Cloud move stop 'B'"<<endl;
